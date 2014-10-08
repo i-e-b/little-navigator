@@ -19,6 +19,8 @@
         // How far down the tree should go before stopping
         const int MaximumDepth = 5;
 
+        static readonly object Lock = new object();
+
         public Form1()
         {
             InitializeComponent();
@@ -26,17 +28,28 @@
             _root = Directory.GetCurrentDirectory();
             Text = _root;
 
-            AddWatcher();
             UpdateTree();
+            AddWatcher();
         }
 
         void UpdateTree()
         {
             InvokeDelegate(() => {
-                tree.SuspendLayout();
-                ListDirectory(tree, _root);
-                tree.ResumeLayout();
+                try
+                {
+                    lock (Lock)
+                    {
+                        tree.SuspendLayout();
+                        ListDirectory(tree, _root);
+                        tree.ResumeLayout();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    searchPreview.Text = ex.GetType().ToString();
+                }
             });
+
         }
 
         void InvokeDelegate(Action act)
@@ -225,8 +238,8 @@
 
             var files = StackFilter(directoryInfo.GetFiles().Select(f=>f.Name).ToArray());
 
-            foreach (var file in files)
-                directoryNode.Nodes.Add(new TreeNode(file));
+            foreach (var file in files) directoryNode.Nodes.Add(new TreeNode(file));
+
             return directoryNode;
         }
 

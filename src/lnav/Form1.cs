@@ -71,7 +71,7 @@
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
-            if ((keyData & Keys.Tab) == Keys.Tab && keyData != Keys.Escape) // key data is weird
+            if (keyData == Keys.Tab || keyData == (Keys.Tab | Keys.Shift))
             {
                 Form1_KeyDown(this, new KeyEventArgs(keyData));
                 return true;

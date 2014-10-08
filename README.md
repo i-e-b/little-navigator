@@ -13,3 +13,8 @@ Keybindings
 * `tab` find next file that contains the find pattern
 * `shift-tab` collapse all branches
 
+To do
+-----
+* Keep expanded tree structure on update
+* Don't update if a hidden file is created or changed
+* copy relative path (between two nodes)

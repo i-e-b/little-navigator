@@ -72,7 +72,19 @@
 
         void RebuildTree(object sender, FileSystemEventArgs e)
         {
-            UpdateTree();
+            if (e.ChangeType == WatcherChangeTypes.Deleted
+                || e.ChangeType == WatcherChangeTypes.Renamed)
+            {
+                if (tree.Nodes.ContainsKey(e.Name))
+                {
+                    UpdateTree();
+                }
+            }
+            else if (e.ChangeType == WatcherChangeTypes.Created)
+            {
+                UpdateTree();
+            }
+
         }
 
         private void Form1_KeyPress(object sender, KeyPressEventArgs e)
@@ -124,10 +136,11 @@
                 case Keys.Return: // load the selected file
                     if (tree.SelectedNode != null)
                     {
-                        if (e.Shift) // add search name to path (to edit new files)
+                        if (e.Shift) // edit new file: add search name to path
                         {
-                            var target = Path.Combine(_root, tree.SelectedNode.FullPath);
-                            LoadFile(target);
+                            var t1 = Path.Combine(_root, tree.SelectedNode.FullPath);
+                            if (File.Exists(t1)) t1 = Path.Combine(_root, Path.GetDirectoryName(tree.SelectedNode.FullPath)??"");
+                            LoadFile(Path.Combine(t1, searchPreview.Text.Trim()));
                         }
                         else // edit existing file.
                         {

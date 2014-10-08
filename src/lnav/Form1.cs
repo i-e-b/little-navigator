@@ -88,7 +88,11 @@
             {
                 Form1_KeyDown(this, new KeyEventArgs(keyData));
                 return true;
-            } 
+            }
+            if (keyData == (Keys.Control | Keys.C))
+            {
+                Clipboard.SetText(tree.SelectedNode.FullPath);
+            }
             var baseResult = base.ProcessCmdKey(ref msg, keyData);
             return baseResult;
         }

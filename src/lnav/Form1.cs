@@ -122,12 +122,13 @@
                     {
                         if (e.Shift) // add search name to path (to edit new files)
                         {
-                            LoadFile(_root, Path.Combine(tree.SelectedNode.FullPath, searchPreview.Text.Trim()));
+                            var target = Path.Combine(_root, tree.SelectedNode.FullPath);
+                            LoadFile(target);
                         }
                         else // edit existing file.
                         {
                             var target = Path.Combine(_root, tree.SelectedNode.FullPath);
-                            if (File.Exists(target)) LoadFile(_root, tree.SelectedNode.FullPath);
+                            if (File.Exists(target)) LoadFile(target);
                         }
                     }
                     break;
@@ -201,12 +202,14 @@
             searchPreview.Text = searchPreview.Text.Substring(0, searchPreview.Text.Length - 1);
         }
 
-        static void LoadFile(string root, string path)
+        static void LoadFile(string fullPath)
         {
+            var wd = Path.GetDirectoryName(fullPath) ?? "\\";
+            var fileName = Path.GetFileName(fullPath);
             Process.Start(new ProcessStartInfo {
                 FileName = LoadTarget,
-                Arguments = string.Format(LoadArgs, path),
-                WorkingDirectory = root,
+                Arguments = string.Format(LoadArgs, fileName),
+                WorkingDirectory = wd,
                 UseShellExecute = true
             });
         }

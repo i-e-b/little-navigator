@@ -17,4 +17,8 @@ To do
 -----
 * Keep expanded tree structure on update
 * Don't update if a hidden file is created or changed
-* copy relative path (between two nodes)
+* copy relative path (between two nodes -- using right-click?)
+* Paste goes into search path
+* Double-click triggers open
+* grep-here command? `ctrl-G`
+* call from cmd line to 'show here' in open instance

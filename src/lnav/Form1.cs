@@ -21,6 +21,8 @@
 
         static readonly object Lock = new object();
 
+        readonly RateLimit UpdateTree;
+
         public Form1()
         {
             InitializeComponent();
@@ -28,13 +30,8 @@
             _root = Directory.GetCurrentDirectory();
             Text = _root;
 
-            UpdateTree();
-            AddWatcher();
-        }
-
-        void UpdateTree()
-        {
-            InvokeDelegate(() => {
+            UpdateTree = new RateLimit(TimeSpan.FromSeconds(2), () => InvokeDelegate(() =>
+            {
                 try
                 {
                     lock (Lock)
@@ -48,8 +45,10 @@
                 {
                     searchPreview.Text = ex.GetType().ToString();
                 }
-            });
+            }));
 
+            UpdateTree.Immediate();
+            AddWatcher();
         }
 
         void InvokeDelegate(Action act)
@@ -61,30 +60,17 @@
         {
             _fileWatcher = new FileSystemWatcher(_root) { 
                 IncludeSubdirectories = true,
-                NotifyFilter = NotifyFilters.CreationTime | NotifyFilters.DirectoryName | NotifyFilters.FileName,
+                NotifyFilter = NotifyFilters.CreationTime | NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.Size,
                 EnableRaisingEvents = true
             };
 
-            _fileWatcher.Changed += RebuildTree;
             _fileWatcher.Created += RebuildTree;
             _fileWatcher.Deleted += RebuildTree;
         }
 
         void RebuildTree(object sender, FileSystemEventArgs e)
         {
-            if (e.ChangeType == WatcherChangeTypes.Deleted
-                || e.ChangeType == WatcherChangeTypes.Renamed)
-            {
-                if (tree.Nodes.ContainsKey(e.Name))
-                {
-                    UpdateTree();
-                }
-            }
-            else if (e.ChangeType == WatcherChangeTypes.Created)
-            {
-                UpdateTree();
-            }
-
+            UpdateTree.Trigger();
         }
 
         private void Form1_KeyPress(object sender, KeyPressEventArgs e)

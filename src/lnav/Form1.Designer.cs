@@ -28,6 +28,7 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.tree = new System.Windows.Forms.TreeView();
             this.searchPreview = new System.Windows.Forms.Label();
             this.SuspendLayout();
@@ -40,7 +41,7 @@
             this.tree.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tree.Location = new System.Drawing.Point(1, 26);
             this.tree.Name = "tree";
-            this.tree.Size = new System.Drawing.Size(390, 332);
+            this.tree.Size = new System.Drawing.Size(432, 606);
             this.tree.TabIndex = 0;
             // 
             // searchPreview
@@ -52,7 +53,7 @@
             this.searchPreview.Location = new System.Drawing.Point(0, 0);
             this.searchPreview.Margin = new System.Windows.Forms.Padding(0);
             this.searchPreview.Name = "searchPreview";
-            this.searchPreview.Size = new System.Drawing.Size(391, 23);
+            this.searchPreview.Size = new System.Drawing.Size(433, 23);
             this.searchPreview.TabIndex = 1;
             this.searchPreview.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
@@ -60,12 +61,14 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(392, 359);
+            this.ClientSize = new System.Drawing.Size(434, 633);
             this.Controls.Add(this.searchPreview);
             this.Controls.Add(this.tree);
+            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.Name = "Form1";
             this.ShowIcon = false;
+            this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "location";
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Form1_KeyPress);

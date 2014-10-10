@@ -32,18 +32,15 @@
 
             UpdateTree = new RateLimit(TimeSpan.FromSeconds(2), () => InvokeDelegate(() =>
             {
-                try
+                lock (Lock)
                 {
-                    lock (Lock)
-                    {
-                        tree.SuspendLayout();
-                        ListDirectory(tree, _root);
-                        tree.ResumeLayout();
-                    }
-                }
-                catch (Exception ex)
-                {
-                    searchPreview.Text = ex.GetType().ToString();
+                    tree.BeginUpdate();
+                    var state = tree.GetState();
+
+                    ListDirectory(tree, _root);
+
+                    tree.SetState(state);
+                    tree.EndUpdate();
                 }
             }));
 
@@ -233,18 +230,23 @@
         {
             if (depth > MaximumDepth) return new TreeNode("...");
 
-            // TODO: if directory has a .gitignore file, use it to filter results
-
             var directoryNode = new TreeNode(directoryInfo.Name);
 
-            var directories = DirectoryFilter(directoryInfo.GetDirectories());
+            try
+            {
+                var directories = DirectoryFilter(directoryInfo.GetDirectories());
 
-            foreach (var directory in directories)
-                directoryNode.Nodes.Add(CreateDirectoryNode(directory, depth + 1));
+                foreach (var directory in directories)
+                    directoryNode.Nodes.Add(CreateDirectoryNode(directory, depth + 1));
 
-            var files = StackFilter(directoryInfo.GetFiles().Select(f=>f.Name).ToArray());
-
-            foreach (var file in files) directoryNode.Nodes.Add(new TreeNode(file));
+                var files = StackFilter(directoryInfo.GetFiles().Select(f => f.Name).ToArray());
+                foreach (var file in files) directoryNode.Nodes.Add(new TreeNode(file));
+            }
+            catch (DirectoryNotFoundException)
+            {
+                // happens when a temp directory is created and deleted while we are refreshing.
+                // Ignore
+            }
 
             return directoryNode;
         }

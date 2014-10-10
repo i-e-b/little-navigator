@@ -19,6 +19,12 @@ Mouse actions
 * double-click to edit selected file
 * right-click to copy a relative path to the clipboard. Path is *from* selected *to* right-clicked nodes.
 
+Other
+-----
+If you pass a command line argument of a file path to `lnav`, it will send this to all other running instances.
+Those instances will use it to search for the file.
+(I map this to `shift-K` in gvim like this: `noremap K :silent! !lnav %<CR>`)
+
 To do
 -----
 * Don't update if a hidden file is created or changed

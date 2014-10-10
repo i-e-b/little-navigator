@@ -362,9 +362,12 @@
             {
                 searchPreview.Text = finalMsg;
                 HilightNextMatch(tree, finalMsg);
-                Thread.Sleep(500); // give caller time to exit
-                BringToFront();
-                Focus();
+                for (int i = 0; i < 3; i++)
+                {
+                    Thread.Sleep(250); // give caller time to exit
+                    Win32.SetForegroundWindow(Handle);
+                    Win32.BringWindowToTop(Handle);
+                }
             })).Start();
         }
     }

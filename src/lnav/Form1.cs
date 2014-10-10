@@ -30,7 +30,7 @@
             _root = Directory.GetCurrentDirectory();
             Text = _root;
 
-            UpdateTree = new RateLimit(TimeSpan.FromSeconds(2), () => InvokeDelegate(() =>
+            UpdateTree = new RateLimit(TimeSpan.FromSeconds(1), () => InvokeDelegate(() =>
             {
                 lock (Lock)
                 {
@@ -163,22 +163,19 @@
             while (newTarget == null)
             {
                 newTarget = FindRecursive(target, original, pattern.ToLower());
-                if (newTarget == null)
+                if (newTarget != null) { continue; }
+                Application.DoEvents();
+                target = WalkParentNext(target);
+                if (target != null) { continue; }
+                if (original != root)
                 {
-                    Application.DoEvents();
-                    target = WalkParentNext(target);
-                    if (target == null)
-                    {
-                        if (original != root)
-                        {
-                            // no matches from selected, start again at top
-                            newTarget = FindRecursive(root, null, pattern.ToLower());
-                        }
-                        else
-                        {
-                            return; // no matches
-                        }
-                    }
+                    // no matches from selected, start again at top
+                    newTarget = FindRecursive(root, null, pattern.ToLower());
+                    if (newTarget == null) return;
+                }
+                else
+                {
+                    return; // no matches
                 }
             }
 
@@ -305,6 +302,23 @@
         private void tree_DoubleClick(object sender, EventArgs e)
         {
             TriggerOpenSelectedNode(makeNew: false);
+        }
+
+        private void tree_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (e.Button == MouseButtons.Right) // put relative path between selected and right-clicked into clipboard
+            {
+                var targ = tree.GetNodeAt(e.Location);
+                var selected = tree.SelectedNode;
+                if (targ == null || selected == null) return;
+
+                var from = new FilePath(Path.Combine(_root, selected.FullPath));
+                var to = new FilePath(Path.Combine(_root, targ.FullPath));
+
+                var path = to.RelativeTo(from).ToEnvironmentalPath();
+
+                Clipboard.SetText(path);
+            }
         }
     }
 }

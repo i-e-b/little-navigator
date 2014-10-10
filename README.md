@@ -12,6 +12,12 @@ Keybindings
 * `shift-return` to edit a new file at the selected path with a name equal to the find pattern
 * `tab` find next file that contains the find pattern
 * `shift-tab` collapse all branches
+* `ctrl-V` paste into search and find next match
+
+Mouse actions
+-------------
+* double-click to edit selected file
+* right-click to copy a relative path to the clipboard. Path is *from* selected *to* right-clicked nodes.
 
 To do
 -----

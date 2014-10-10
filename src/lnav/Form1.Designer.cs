@@ -44,6 +44,7 @@
             this.tree.Size = new System.Drawing.Size(432, 606);
             this.tree.TabIndex = 0;
             this.tree.DoubleClick += new System.EventHandler(this.tree_DoubleClick);
+            this.tree.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tree_MouseDown);
             // 
             // searchPreview
             // 

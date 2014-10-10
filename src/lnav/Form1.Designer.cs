@@ -43,6 +43,7 @@
             this.tree.Name = "tree";
             this.tree.Size = new System.Drawing.Size(432, 606);
             this.tree.TabIndex = 0;
+            this.tree.DoubleClick += new System.EventHandler(this.tree_DoubleClick);
             // 
             // searchPreview
             // 
@@ -70,8 +71,8 @@
             this.ShowIcon = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "location";
-            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyDown);
-            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.Form1_KeyPress);
+            this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormKeyDown);
+            this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FormKeyPress);
             this.ResumeLayout(false);
 
         }

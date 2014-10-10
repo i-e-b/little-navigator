@@ -70,7 +70,7 @@
             UpdateTree.Trigger();
         }
 
-        private void Form1_KeyPress(object sender, KeyPressEventArgs e)
+        private void FormKeyPress(object sender, KeyPressEventArgs e)
         {
             if (char.IsControl(e.KeyChar)) return;
 
@@ -81,7 +81,7 @@
         {
             if (keyData == Keys.Tab || keyData == (Keys.Tab | Keys.Shift))
             {
-                Form1_KeyDown(this, new KeyEventArgs(keyData));
+                FormKeyDown(this, new KeyEventArgs(keyData));
                 return true;
             }
             if (keyData == (Keys.Control | Keys.C))
@@ -92,7 +92,7 @@
             return baseResult;
         }
 
-        private void Form1_KeyDown(object sender, KeyEventArgs e)
+        private void FormKeyDown(object sender, KeyEventArgs e)
         {
             tree.Focus();
             switch (e.KeyCode)
@@ -117,22 +117,33 @@
                     break;
 
                 case Keys.Return: // load the selected file
-                    if (tree.SelectedNode != null)
-                    {
-                        if (e.Shift) // edit new file: add search name to path
-                        {
-                            var t1 = Path.Combine(_root, tree.SelectedNode.FullPath);
-                            if (File.Exists(t1)) t1 = Path.Combine(_root, Path.GetDirectoryName(tree.SelectedNode.FullPath)??"");
-                            LoadFile(Path.Combine(t1, searchPreview.Text.Trim()));
-                        }
-                        else // edit existing file.
-                        {
-                            var target = Path.Combine(_root, tree.SelectedNode.FullPath);
-                            if (File.Exists(target)) LoadFile(target);
-                        }
-                    }
+                    TriggerOpenSelectedNode(makeNew: e.Shift);
                     break;
 
+            }
+        }
+
+        void TriggerOpenSelectedNode(bool makeNew)
+        {
+            if (tree.SelectedNode != null)
+            {
+                if (makeNew) // edit new file: add search name to path
+                {
+                    var t1 = Path.Combine(_root, tree.SelectedNode.FullPath);
+                    if (File.Exists(t1))
+                    {
+                        t1 = Path.Combine(_root, Path.GetDirectoryName(tree.SelectedNode.FullPath) ?? "");
+                    }
+                    LoadFile(Path.Combine(t1, searchPreview.Text.Trim()));
+                }
+                else // edit existing file.
+                {
+                    var target = Path.Combine(_root, tree.SelectedNode.FullPath);
+                    if (File.Exists(target))
+                    {
+                        LoadFile(target);
+                    }
+                }
             }
         }
 
@@ -284,6 +295,11 @@
                 if (add) output.Add(file);
             }
             return output;
+        }
+
+        private void tree_DoubleClick(object sender, EventArgs e)
+        {
+            TriggerOpenSelectedNode(makeNew: false);
         }
     }
 }

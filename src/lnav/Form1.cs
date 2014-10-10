@@ -88,6 +88,11 @@
             {
                 Clipboard.SetText(tree.SelectedNode.FullPath);
             }
+            if (keyData == (Keys.Control | Keys.V))
+            {
+                searchPreview.Text = Clipboard.GetText();
+                HilightNextMatch(tree, searchPreview.Text);
+            }
             var baseResult = base.ProcessCmdKey(ref msg, keyData);
             return baseResult;
         }

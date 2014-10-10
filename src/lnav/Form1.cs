@@ -5,6 +5,8 @@
     using System.Diagnostics;
     using System.IO;
     using System.Linq;
+    using System.Text;
+    using System.Threading;
     using System.Windows.Forms;
 
     public sealed partial class Form1 : Form
@@ -67,6 +69,10 @@
 
         void RebuildTree(object sender, FileSystemEventArgs e)
         {
+            if (e.ChangeType == WatcherChangeTypes.Deleted || e.ChangeType == WatcherChangeTypes.Changed)
+            {
+                if (tree.Nodes.Find(e.Name, true).Length < 1) return; // change to a node we have hidden
+            }
             UpdateTree.Trigger();
         }
 
@@ -319,6 +325,47 @@
 
                 Clipboard.SetText(path);
             }
+        }
+
+       
+        readonly StringBuilder goToMessage = new StringBuilder();
+        
+        /// <summary>
+        /// Receive 'go to' messages from command line invocation.
+        /// </summary>
+        protected override void WndProc(ref Message m)
+        {
+            switch (m.Msg)
+            {
+                case Program.GoToMessage:
+                    var val = m.LParam.ToInt32();
+                    if (val == 0)
+                    {
+                        var finalMsg = goToMessage.ToString();
+                        goToMessage.Clear();
+                        AsyncSearch(finalMsg);
+                    }
+                    else
+                    {
+                        goToMessage.Append((char)val);
+                    }
+                    break;
+                default:
+                    base.WndProc(ref m);
+                    break;
+            }
+        }
+
+        void AsyncSearch(string finalMsg)
+        {
+            new Thread(() => InvokeDelegate(() =>
+            {
+                searchPreview.Text = finalMsg;
+                HilightNextMatch(tree, finalMsg);
+                Thread.Sleep(500); // give caller time to exit
+                BringToFront();
+                Focus();
+            })).Start();
         }
     }
 }

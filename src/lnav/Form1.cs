@@ -11,7 +11,9 @@
 
     public sealed partial class Form1 : Form
     {
+        /// <summary> The full file path where the navigator is rooted </summary>
         readonly string _root;
+
         FileSystemWatcher _fileWatcher;
 
         // this is called on cmd when selecting a node
@@ -30,6 +32,9 @@
             InitializeComponent();
 
             _root = Directory.GetCurrentDirectory();
+            if (_root.Substring(1).StartsWith(":\\Windows")) {
+                Environment.Exit(1);
+            }
             Text = _root;
 
             UpdateTree = new RateLimit(TimeSpan.FromSeconds(1), () => InvokeDelegate(() =>
@@ -336,7 +341,7 @@
 
        
         readonly StringBuilder goToMessage = new StringBuilder();
-        
+
         /// <summary>
         /// Receive 'go to' messages from command line invocation.
         /// </summary>
@@ -365,10 +370,17 @@
 
         void AsyncSearch(string finalMsg)
         {
+            // we might get a full path from outside, or a relative one, or a full file path.
+            // as it's a bit of a mess, we should do something clever here. For now we will do
+            // the stupid thing and just take the last path element:
+            var searchTerm = Path.GetFileName(finalMsg);
+
             new Thread(() => InvokeDelegate(() =>
             {
-                searchPreview.Text = finalMsg;
-                HilightNextMatch(tree, finalMsg);
+                searchPreview.Text = searchTerm;
+                HilightNextMatch(tree, searchTerm);
+
+                // Try to become the front window -- may need to retry as helper may be switching focus about
                 for (int i = 0; i < 10; i++)
                 {
                     if (Win32.GetForegroundWindow() == Handle) break;

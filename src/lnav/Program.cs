@@ -2,7 +2,6 @@
 {
     using System;
     using System.Diagnostics;
-    using System.IO;
     using System.Linq;
     using System.Runtime.InteropServices;
     using System.Windows.Forms;
@@ -12,7 +11,7 @@
         public const int GoToMessage = 0xA123;
 
         [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-        private static extern IntPtr SendMessage(IntPtr hwnd, uint Msg, IntPtr wParam, IntPtr lParam);
+        private static extern IntPtr SendMessage(IntPtr hwnd, uint msg, IntPtr wParam, IntPtr lParam);
 
         /// <summary>
         /// The main entry point for the application.
@@ -23,7 +22,7 @@
             // if we get a file path arg, connect to an existing instance and pass that path, then exit
             if (args.Length > 0)
             {
-                if (SendArgumentToOtherInstances(args[0])) return;
+                if (SendArgumentToOtherInstances(string.Join(" ", args))) return;
 
                 return;
             }
@@ -35,21 +34,20 @@
 
         static bool SendArgumentToOtherInstances(string target)
         {
-            if (!File.Exists(target))
-            {
-                return true;
-            }
-
+            //var cons = new GUIConsoleWriter();
+            //cons.WriteLine("Sending search message to other instances");
             var me = Process.GetCurrentProcess().Id;
             var others = Process.GetProcessesByName("lnav").Where(p => p.Id != me);
 
             foreach (var proc in others)
             {
+                //cons.WriteLine("Sending to PID " + proc.Id);
                 foreach (var c in target)
                 {
                     SendMessage(proc.MainWindowHandle, GoToMessage, IntPtr.Zero, new IntPtr(c));
                 }
                 SendMessage(proc.MainWindowHandle, GoToMessage, IntPtr.Zero, IntPtr.Zero);
+                //cons.WriteLine("- done.");
             }
             return false;
         }

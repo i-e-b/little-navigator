@@ -28,6 +28,5 @@ Those instances will use it to search for the file.
 To do
 -----
 * Don't update if a hidden file is created or changed
-* copy relative path (between two nodes -- using right-click?)
 * grep-here command? `ctrl-G`
-* call from cmd line to 'show here' in open instance
+* load a file + location from error format (filepath:line:col)

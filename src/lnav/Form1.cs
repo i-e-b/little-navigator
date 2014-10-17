@@ -166,9 +166,11 @@
             var original = treeView.SelectedNode;
             TreeNode newTarget = null;
 
+            var cleanPattern = pattern.ToLower().Replace("/", "\\");
+
             while (newTarget == null)
             {
-                newTarget = FindRecursive(target, original, pattern.ToLower());
+                newTarget = FindRecursive(target, original, cleanPattern);
                 if (newTarget != null) { continue; }
                 Application.DoEvents();
                 target = WalkParentNext(target);
@@ -176,7 +178,7 @@
                 if (original != root)
                 {
                     // no matches from selected, start again at top
-                    newTarget = FindRecursive(root, null, pattern.ToLower());
+                    newTarget = FindRecursive(root, null, cleanPattern);
                     if (newTarget == null) return;
                 }
                 else
@@ -191,7 +193,12 @@
         static TreeNode FindRecursive(TreeNode target, TreeNode ignore, string pattern)
         {
             if (target == null) return null;
-            if (target != ignore && target.Text.ToLower().Contains(pattern)) return target;
+            var match = pattern.Contains("\\")
+                ? target.FullPath.ToLower() // match paths and path fragments
+                : target.Text.ToLower(); // match file and folder names, but not files based on folder names
+            
+            if (target != ignore && match.Contains(pattern)) return target;
+
             foreach (TreeNode n in target.Nodes) {
                 var maybe = FindRecursive(n, ignore, pattern);
                 if (maybe != null) return maybe;
@@ -235,10 +242,10 @@
 
         private static void ListDirectory(TreeView treeView, string path)
         {
-            treeView.Nodes.Clear();
             var rootDirectoryInfo = new DirectoryInfo(path);
             var nodes = CreateDirectoryNode(rootDirectoryInfo, 0);
 
+            treeView.Nodes.Clear();
             foreach (TreeNode node in nodes.Nodes)
             {
                 treeView.Nodes.Add(node);
@@ -362,11 +369,12 @@
             {
                 searchPreview.Text = finalMsg;
                 HilightNextMatch(tree, finalMsg);
-                for (int i = 0; i < 3; i++)
+                for (int i = 0; i < 10; i++)
                 {
-                    Thread.Sleep(250); // give caller time to exit
+                    if (Win32.GetForegroundWindow() == Handle) break;
                     Win32.SetForegroundWindow(Handle);
                     Win32.BringWindowToTop(Handle);
+                    Thread.Sleep(100); // give caller time to exit
                 }
             })).Start();
         }

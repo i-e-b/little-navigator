@@ -4,19 +4,21 @@ little-navigator
 A tiny keyboard-friendly directory navigator for Windows
 
 Start `lnav.exe` in the directory you want to navigate from.
-Type to edit the find pattern
+Type to edit the search string
 
 Keybindings
 -----------
 * `return`
-   * if a file is selected, edit the selected file (currently hard coded to gVim)
-     if search string ends with `:x:y`, will open file at row `x`, col `y`
-     if search string ends with `:x`, will open file at row `x`
+   * if a file is selected, edit the selected file (currently hard coded to gVim).
+     If search string ends with `:x:y`, will open file at row `x`, col `y`.
+     If search string ends with `:x`, will open file at row `x`
    * if a directory is selected, open the directory in an explorer window
-* `shift-return` to edit a new file at the selected path with a name equal to the find pattern
-* `tab` find next file that contains the find pattern
+* `shift-return` to edit a new file at the selected path with a name equal to the search string
+* `tab` find next file that contains the search string
 * `shift-tab` collapse all branches
-* `ctrl-V` paste into search and find next match
+* `ctrl-V` paste into search string and find next match
+* `ctrl-G` find next file whose contents match a regex from the search string.
+   * `shift-ctrl-G` open file and go to first match position
 
 Mouse actions
 -------------

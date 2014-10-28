@@ -7,6 +7,7 @@
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Windows.Forms;
 
@@ -90,6 +91,7 @@
             e.Handled = true;
         }
 
+        Point? lastGrepPosition = null;
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == Keys.Tab || keyData == (Keys.Tab | Keys.Shift))
@@ -106,6 +108,23 @@
             {
                 searchPreview.Text = Clipboard.GetText();
                 HilightNextMatch(tree, searchPreview.Text);
+            }
+            if (keyData == (Keys.Control | Keys.G))
+            {
+                // check regex
+                var pattern = searchPreview.Text;
+                if (Grep.IsValid(pattern))
+                {
+                    var tn = FindNextMatch(tree, n => {
+                        lastGrepPosition = Grep.FileContainsPattern(Path.Combine(_root, n.FullPath), pattern);
+                        return lastGrepPosition != null;
+                    });
+                    tree.SelectedNode = tn;
+                }
+            }
+            if (keyData == (Keys.Control | Keys.Shift | Keys.G))
+            {
+                TriggerOpenSelectedNode(makeNew: false);
             }
             var baseResult = base.ProcessCmdKey(ref msg, keyData);
             return baseResult;
@@ -136,6 +155,7 @@
                     break;
 
                 case Keys.Return: // load the selected file
+                    lastGrepPosition = null;
                     TriggerOpenSelectedNode(makeNew: e.Shift);
                     break;
 
@@ -193,6 +213,7 @@
         /// </summary>
         Point SearchPosition()
         {
+            if (lastGrepPosition != null) return lastGrepPosition.Value;
             if (string.IsNullOrWhiteSpace(searchPreview.Text)) return new Point(1, 1);
             var bits = searchPreview.Text.Trim().Split(':');
             switch (bits.Length)
@@ -215,17 +236,25 @@
 
         static void HilightNextMatch(TreeView treeView, string pattern)
         {
+            var lcasePattern = pattern.ToLower().Replace("/", "\\");
+            Func<TreeNode,bool> match;
+            if (pattern.Contains("\\")) match = target => target.FullPath.ToLower().Contains(lcasePattern); // match paths and path fragments
+            else match = target => target.Text.ToLower().Contains(lcasePattern); // match file and folder names, but not files based on folder names
+
+            treeView.SelectedNode = FindNextMatch(treeView, match);
+        }
+
+        static TreeNode FindNextMatch(TreeView treeView, Func<TreeNode,bool> match)
+        {
             var root = treeView.Nodes[0];
 
             var target = treeView.SelectedNode;
             var original = treeView.SelectedNode;
             TreeNode newTarget = null;
 
-            var cleanPattern = pattern.ToLower().Replace("/", "\\");
-
             while (newTarget == null)
             {
-                newTarget = FindRecursive(target, original, cleanPattern);
+                newTarget = FindRecursive(target, original, match);
                 if (newTarget != null) { continue; }
                 Application.DoEvents();
                 target = WalkParentNext(target);
@@ -233,34 +262,31 @@
                 if (original != root)
                 {
                     // no matches from selected, start again at top
-                    newTarget = FindRecursive(root, null, cleanPattern);
-                    if (newTarget == null) return;
+                    newTarget = FindRecursive(root, null, match);
+                    if (newTarget == null) return null;
                 }
                 else
                 {
-                    return; // no matches
+                    return null; // no matches
                 }
             }
 
-            treeView.SelectedNode = newTarget;
+            return newTarget;
         }
 
-        static TreeNode FindRecursive(TreeNode target, TreeNode ignore, string pattern)
+        static TreeNode FindRecursive(TreeNode target, TreeNode ignore, Func<TreeNode, bool> match)
         {
             if (target == null) return null;
-            var match = pattern.Contains("\\")
-                ? target.FullPath.ToLower() // match paths and path fragments
-                : target.Text.ToLower(); // match file and folder names, but not files based on folder names
             
-            if (target != ignore && match.Contains(pattern)) return target;
+            if (target != ignore && match(target)) return target;
 
             foreach (TreeNode n in target.Nodes) {
-                var maybe = FindRecursive(n, ignore, pattern);
+                var maybe = FindRecursive(n, ignore, match);
                 if (maybe != null) return maybe;
             }
             if (target.NextNode != null)
             {
-                var next = FindRecursive(target.NextNode, null, pattern);
+                var next = FindRecursive(target.NextNode, null, match);
                 if (next != null) return next;
             }
             return null;

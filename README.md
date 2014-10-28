@@ -30,3 +30,4 @@ To do
 * Don't update if a hidden file is created or changed
 * grep-here command? `ctrl-G`
 * load a file + location from error format (filepath:line:col)
+* open file location in Explorer

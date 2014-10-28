@@ -39,11 +39,13 @@
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tree.BorderStyle = System.Windows.Forms.BorderStyle.None;
+            this.tree.FullRowSelect = true;
             this.tree.Location = new System.Drawing.Point(1, 26);
             this.tree.Name = "tree";
             this.tree.Size = new System.Drawing.Size(432, 606);
             this.tree.TabIndex = 0;
             this.tree.DoubleClick += new System.EventHandler(this.tree_DoubleClick);
+            this.tree.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tree_KeyPress);
             this.tree.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tree_MouseDown);
             // 
             // searchPreview

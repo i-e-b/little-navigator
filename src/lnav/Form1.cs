@@ -86,6 +86,7 @@
             if (char.IsControl(e.KeyChar)) return;
 
             searchPreview.Text += e.KeyChar;
+            e.Handled = true;
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
@@ -389,6 +390,12 @@
                     Thread.Sleep(100); // give caller time to exit
                 }
             })).Start();
+        }
+
+        private void tree_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // don't change selection until tab is pressed
+            FormKeyPress(sender, e);    
         }
     }
 }

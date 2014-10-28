@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Diagnostics;
+    using System.Drawing;
     using System.IO;
     using System.Linq;
     using System.Text;
@@ -17,8 +18,8 @@
         FileSystemWatcher _fileWatcher;
 
         // this is called on cmd when selecting a node
-        const string LoadTarget = @"C:\Program Files (x86)\Vim\vim74\gvim.exe";
-        const string LoadArgs = "--remote-tab-silent \"{0}\"";
+        const string FileLoadTarget = @"C:\Program Files (x86)\Vim\vim74\gvim.exe";
+        const string FileLoadArgs = "--remote-tab-silent \"{0}\"";
 
         // How far down the tree should go before stopping
         const int MaximumDepth = 5;
@@ -98,7 +99,8 @@
             }
             if (keyData == (Keys.Control | Keys.C))
             {
-                Clipboard.SetText(tree.SelectedNode.FullPath);
+                if (tree.SelectedNode != null && !string.IsNullOrEmpty(tree.SelectedNode.FullPath))
+                    Clipboard.SetText(tree.SelectedNode.FullPath);
             }
             if (keyData == (Keys.Control | Keys.V))
             {
@@ -142,24 +144,36 @@
 
         void TriggerOpenSelectedNode(bool makeNew)
         {
-            if (tree.SelectedNode != null)
+            if (tree.SelectedNode == null) { return; }
+
+            var targetPath = tree.SelectedNode.FullPath;
+
+            if (Directory.Exists(targetPath)) OpenDirectoryInExplorer(targetPath);
+            else OpenFilePathInEditor(makeNew, targetPath);
+        }
+
+        void OpenDirectoryInExplorer(string targetPath)
+        {
+            Process.Start("explorer.exe", Path.Combine(_root, targetPath));
+        }
+
+        void OpenFilePathInEditor(bool makeNew, string targetPath)
+        {
+            if (makeNew) // edit new file: add search name to path
             {
-                if (makeNew) // edit new file: add search name to path
+                var t1 = Path.Combine(_root, targetPath);
+                if (File.Exists(t1))
                 {
-                    var t1 = Path.Combine(_root, tree.SelectedNode.FullPath);
-                    if (File.Exists(t1))
-                    {
-                        t1 = Path.Combine(_root, Path.GetDirectoryName(tree.SelectedNode.FullPath) ?? "");
-                    }
-                    LoadFile(Path.Combine(t1, searchPreview.Text.Trim()));
+                    t1 = Path.Combine(_root, Path.GetDirectoryName(targetPath) ?? "");
                 }
-                else // edit existing file.
+                LoadFile(Path.Combine(t1, searchPreview.Text.Trim()));
+            }
+            else // edit existing file.
+            {
+                var target = Path.Combine(_root, targetPath);
+                if (File.Exists(target))
                 {
-                    var target = Path.Combine(_root, tree.SelectedNode.FullPath);
-                    if (File.Exists(target))
-                    {
-                        LoadFile(target);
-                    }
+                    LoadFile(target);
                 }
             }
         }
@@ -239,8 +253,8 @@
             var wd = Path.GetDirectoryName(fullPath) ?? "\\";
             var fileName = Path.GetFileName(fullPath);
             Process.Start(new ProcessStartInfo {
-                FileName = LoadTarget,
-                Arguments = string.Format(LoadArgs, fileName),
+                FileName = FileLoadTarget,
+                Arguments = string.Format(FileLoadArgs, fileName),
                 WorkingDirectory = wd,
                 UseShellExecute = true
             });
@@ -267,17 +281,26 @@
             try
             {
                 var directories = DirectoryFilter(directoryInfo.GetDirectories());
+                directoryNode.ForeColor = Color.SlateBlue;
 
                 foreach (var directory in directories)
                     directoryNode.Nodes.Add(CreateDirectoryNode(directory, depth + 1));
 
                 var files = StackFilter(directoryInfo.GetFiles().Select(f => f.Name).ToArray());
-                foreach (var file in files) directoryNode.Nodes.Add(new TreeNode(file));
+                foreach (var file in files)
+                {
+                    directoryNode.Nodes.Add(new TreeNode(file));
+                }
             }
-            catch (DirectoryNotFoundException)
-            {
+            catch (DirectoryNotFoundException) {
                 // happens when a temp directory is created and deleted while we are refreshing.
                 // Ignore
+            }
+            catch (UnauthorizedAccessException)
+            {
+                // add a dummy node?
+                directoryNode.Text += " (Access Denied)";
+                directoryNode.ForeColor = Color.Gray;
             }
 
             return directoryNode;
@@ -339,7 +362,6 @@
                 Clipboard.SetText(path);
             }
         }
-
        
         readonly StringBuilder goToMessage = new StringBuilder();
 
@@ -384,10 +406,10 @@
                 // Try to become the front window -- may need to retry as helper may be switching focus about
                 for (int i = 0; i < 10; i++)
                 {
-                    if (Win32.GetForegroundWindow() == Handle) break;
                     Win32.SetForegroundWindow(Handle);
                     Win32.BringWindowToTop(Handle);
                     Thread.Sleep(100); // give caller time to exit
+                    if (Win32.GetForegroundWindow() == Handle) break;
                 }
             })).Start();
         }

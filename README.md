@@ -8,7 +8,9 @@ Type to edit the find pattern
 
 Keybindings
 -----------
-* `return` edit the selected file (currently hard coded to gVim)
+* `return`
+   * if a file is selected, edit the selected file (currently hard coded to gVim)
+   * if a directory is selected, open the directory in an explorer window
 * `shift-return` to edit a new file at the selected path with a name equal to the find pattern
 * `tab` find next file that contains the find pattern
 * `shift-tab` collapse all branches
@@ -27,7 +29,5 @@ Those instances will use it to search for the file.
 
 To do
 -----
-* Don't update if a hidden file is created or changed
 * grep-here command? `ctrl-G`
 * load a file + location from error format (filepath:line:col)
-* open file location in Explorer

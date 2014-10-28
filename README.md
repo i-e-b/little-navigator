@@ -10,6 +10,8 @@ Keybindings
 -----------
 * `return`
    * if a file is selected, edit the selected file (currently hard coded to gVim)
+     if search string ends with `:x:y`, will open file at row `x`, col `y`
+     if search string ends with `:x`, will open file at row `x`
    * if a directory is selected, open the directory in an explorer window
 * `shift-return` to edit a new file at the selected path with a name equal to the find pattern
 * `tab` find next file that contains the find pattern
@@ -30,4 +32,3 @@ Those instances will use it to search for the file.
 To do
 -----
 * grep-here command? `ctrl-G`
-* load a file + location from error format (filepath:line:col)

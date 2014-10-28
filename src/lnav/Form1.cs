@@ -19,7 +19,7 @@
 
         // this is called on cmd when selecting a node
         const string FileLoadTarget = @"C:\Program Files (x86)\Vim\vim74\gvim.exe";
-        const string FileLoadArgs = "--remote-tab-silent \"{0}\"";
+        const string FileLoadArgs = "--remote-tab-silent \"+call cursor({1},{2})\" \"{0}\""; // 0: filename, 1: row(1-based), 2: col(1-based)
 
         // How far down the tree should go before stopping
         const int MaximumDepth = 5;
@@ -166,16 +166,51 @@
                 {
                     t1 = Path.Combine(_root, Path.GetDirectoryName(targetPath) ?? "");
                 }
-                LoadFile(Path.Combine(t1, searchPreview.Text.Trim()));
+                LoadFile(Path.Combine(t1, /*searchPreview.Text.Trim()*/ SearchFileName()), SearchPosition());
             }
             else // edit existing file.
             {
                 var target = Path.Combine(_root, targetPath);
                 if (File.Exists(target))
                 {
-                    LoadFile(target);
+                    LoadFile(target, SearchPosition());
                 }
             }
+        }
+
+        /// <summary>
+        /// Strip ":row:col" from a filename
+        /// </summary>
+        /// <returns></returns>
+        string SearchFileName()
+        {
+            if (string.IsNullOrWhiteSpace(searchPreview.Text)) return "";
+            return searchPreview.Text.Trim().Split(':')[0];
+        }
+
+        /// <summary>
+        /// Read row and column of a search like "filename:row:col"
+        /// </summary>
+        Point SearchPosition()
+        {
+            if (string.IsNullOrWhiteSpace(searchPreview.Text)) return new Point(1, 1);
+            var bits = searchPreview.Text.Trim().Split(':');
+            switch (bits.Length)
+            {
+                case 3:
+                    return new Point(PosOrDefault(bits[2]), PosOrDefault(bits[1]));
+                case 2:
+                    return new Point(1, PosOrDefault(bits[1]));
+                default:
+                    return new Point(1, 1);
+            }
+        }
+
+        static int PosOrDefault(string p)
+        {
+            int r;
+            if (int.TryParse(p, out r)) return r;
+            return 1;
         }
 
         static void HilightNextMatch(TreeView treeView, string pattern)
@@ -248,13 +283,13 @@
             searchPreview.Text = searchPreview.Text.Substring(0, searchPreview.Text.Length - 1);
         }
 
-        static void LoadFile(string fullPath)
+        static void LoadFile(string fullPath, Point filePosition)
         {
             var wd = Path.GetDirectoryName(fullPath) ?? "\\";
             var fileName = Path.GetFileName(fullPath);
             Process.Start(new ProcessStartInfo {
                 FileName = FileLoadTarget,
-                Arguments = string.Format(FileLoadArgs, fileName),
+                Arguments = string.Format(FileLoadArgs, fileName, filePosition.Y, filePosition.X),
                 WorkingDirectory = wd,
                 UseShellExecute = true
             });

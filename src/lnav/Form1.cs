@@ -7,7 +7,6 @@
     using System.IO;
     using System.Linq;
     using System.Text;
-    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Windows.Forms;
 
@@ -15,8 +14,10 @@
     {
         /// <summary> The full file path where the navigator is rooted </summary>
         readonly string _root;
-
         FileSystemWatcher _fileWatcher;
+
+        // Position in file that a match was found
+        Point? lastGrepPosition;
 
         // this is called on cmd when selecting a node
         const string FileLoadTarget = @"C:\Program Files (x86)\Vim\vim74\gvim.exe";
@@ -91,7 +92,6 @@
             e.Handled = true;
         }
 
-        Point? lastGrepPosition = null;
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
         {
             if (keyData == Keys.Tab || keyData == (Keys.Tab | Keys.Shift))
@@ -102,32 +102,53 @@
             if (keyData == (Keys.Control | Keys.C))
             {
                 if (tree.SelectedNode != null && !string.IsNullOrEmpty(tree.SelectedNode.FullPath))
+                {
                     Clipboard.SetText(tree.SelectedNode.FullPath);
+                }
+                return true;
             }
             if (keyData == (Keys.Control | Keys.V))
             {
                 searchPreview.Text = Clipboard.GetText();
                 HilightNextMatch(tree, searchPreview.Text);
+                return true;
             }
             if (keyData == (Keys.Control | Keys.G))
             {
                 // check regex
                 var pattern = searchPreview.Text;
+                ShowSearching();
                 if (Grep.IsValid(pattern))
                 {
+                    var prevNode = tree.SelectedNode;
                     var tn = FindNextMatch(tree, n => {
                         lastGrepPosition = Grep.FileContainsPattern(Path.Combine(_root, n.FullPath), pattern);
                         return lastGrepPosition != null;
                     });
-                    tree.SelectedNode = tn;
+                    tree.SelectedNode = tn ?? prevNode;
+                    DoneSearching();
                 }
+                return true;
             }
             if (keyData == (Keys.Control | Keys.Shift | Keys.G))
             {
                 TriggerOpenSelectedNode(makeNew: false);
+                return true;
             }
             var baseResult = base.ProcessCmdKey(ref msg, keyData);
             return baseResult;
+        }
+
+        void DoneSearching()
+        {
+            searchPreview.BackColor = Color.White;
+            searchPreview.Refresh();
+        }
+
+        void ShowSearching()
+        {
+            searchPreview.BackColor = Color.CornflowerBlue;
+            searchPreview.Refresh();
         }
 
         private void FormKeyDown(object sender, KeyEventArgs e)
@@ -150,7 +171,9 @@
                     }
                     else // Hunt for next match
                     {
+                        ShowSearching();
                         HilightNextMatch(tree, searchPreview.Text);
+                        DoneSearching();
                     }
                     break;
 

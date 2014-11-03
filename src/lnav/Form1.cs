@@ -159,12 +159,15 @@
                 case Keys.Back:
                 case Keys.Delete:
                     SearchBackspace();
+                    e.Handled = true; // prevent keystrokes going to the tree
                     break;
                 case Keys.Escape:
+                    e.Handled = true;
                     searchPreview.Text = "";
                     break;
 
                 case Keys.Tab:
+                    e.Handled = true;
                     if (e.Shift) // collapse all nodes
                     {
                         tree.CollapseAll();
@@ -178,6 +181,7 @@
                     break;
 
                 case Keys.Return: // load the selected file
+                    e.Handled = true;
                     lastGrepPosition = null;
                     TriggerOpenSelectedNode(makeNew: e.Shift);
                     break;
@@ -191,7 +195,7 @@
 
             var targetPath = tree.SelectedNode.FullPath;
 
-            if (Directory.Exists(targetPath)) OpenDirectoryInExplorer(targetPath);
+            if (Directory.Exists(targetPath) && !makeNew) OpenDirectoryInExplorer(targetPath);
             else OpenFilePathInEditor(makeNew, targetPath);
         }
 
@@ -209,7 +213,7 @@
                 {
                     t1 = Path.Combine(_root, Path.GetDirectoryName(targetPath) ?? "");
                 }
-                LoadFile(Path.Combine(t1, /*searchPreview.Text.Trim()*/ SearchFileName()), SearchPosition());
+                LoadFile(Path.Combine(t1, SearchFileName()), SearchPosition());
             }
             else // edit existing file.
             {
@@ -419,6 +423,10 @@
                 else if (file.EndsWith(".js", StringComparison.Ordinal))
                 {
                     if (files.Contains(file.Replace(".js", ".ts"))) add = false;
+                }
+                else if (file.EndsWith(".d.ts", StringComparison.Ordinal))
+                {
+                    if (files.Contains(file.Replace(".d.ts", ".ts"))) add = false;
                 }
                 if (add) output.Add(file);
             }

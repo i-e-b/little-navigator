@@ -34,3 +34,4 @@ Those instances will use it to search for the file.
 To do
 -----
 * cleanup Form1 code.
+* option to expand directories that have been truncated due to depth limit.

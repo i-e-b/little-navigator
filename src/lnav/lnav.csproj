@@ -52,6 +52,9 @@
     <Compile Include="GUIConsoleWriter.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="PublicTextBox.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <Compile Include="RateLimit.cs" />
     <Compile Include="TreeViewExtensions.cs" />
     <Compile Include="Win32.cs" />

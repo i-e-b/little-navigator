@@ -30,7 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.tree = new System.Windows.Forms.TreeView();
-            this.searchPreview = new System.Windows.Forms.Label();
+            this.searchPreview = new PublicTextBox();
             this.SuspendLayout();
             // 
             // tree
@@ -40,10 +40,12 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.tree.BorderStyle = System.Windows.Forms.BorderStyle.None;
             this.tree.FullRowSelect = true;
+            this.tree.HideSelection = false;
             this.tree.Location = new System.Drawing.Point(1, 26);
             this.tree.Name = "tree";
             this.tree.Size = new System.Drawing.Size(432, 606);
-            this.tree.TabIndex = 0;
+            this.tree.TabIndex = 1;
+            this.tree.TabStop = false;
             this.tree.DoubleClick += new System.EventHandler(this.tree_DoubleClick);
             this.tree.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tree_KeyPress);
             this.tree.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tree_MouseDown);
@@ -53,13 +55,16 @@
             this.searchPreview.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.searchPreview.BackColor = System.Drawing.SystemColors.Window;
+            this.searchPreview.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.searchPreview.Font = new System.Drawing.Font("Consolas", 9.75F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            this.searchPreview.HideSelection = false;
             this.searchPreview.Location = new System.Drawing.Point(0, 0);
             this.searchPreview.Margin = new System.Windows.Forms.Padding(0);
             this.searchPreview.Name = "searchPreview";
             this.searchPreview.Size = new System.Drawing.Size(433, 23);
-            this.searchPreview.TabIndex = 1;
-            this.searchPreview.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
+            this.searchPreview.TabIndex = 0;
+            this.searchPreview.TextAlign = System.Windows.Forms.HorizontalAlignment.Center;
+            this.searchPreview.WordWrap = false;
             // 
             // Form1
             // 
@@ -77,13 +82,14 @@
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormKeyDown);
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FormKeyPress);
             this.ResumeLayout(false);
+            this.PerformLayout();
 
         }
 
         #endregion
 
         private System.Windows.Forms.TreeView tree;
-        private System.Windows.Forms.Label searchPreview;
+        private PublicTextBox searchPreview;
     }
 }
 

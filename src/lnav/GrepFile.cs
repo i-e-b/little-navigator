@@ -9,17 +9,24 @@
         public static Point? FileContainsPattern(string filePath, string pattern)
         {
             if (!File.Exists(filePath)) return null;
-            using (var reader = File.OpenText(filePath))
+            try
             {
-                string line;
-                int row = 0;
-                while ((line = reader.ReadLine()) != null)
+                using (var reader = File.OpenText(filePath))
                 {
-                    row++;
-                    var match = Regex.Match(line, pattern);
-                    if (!match.Success) continue;
-                    return new Point(match.Index, row);
+                    string line;
+                    int row = 0;
+                    while ((line = reader.ReadLine()) != null)
+                    {
+                        row++;
+                        var match = Regex.Match(line, pattern);
+                        if (!match.Success) continue;
+                        return new Point(match.Index, row);
+                    }
                 }
+            }
+            catch
+            {
+                return null;
             }
             return null;
         }

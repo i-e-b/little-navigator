@@ -28,7 +28,8 @@
         // How far down the tree should go before stopping
         const int MaximumDepth = 5;
 
-        static readonly object Lock = new object();
+        static readonly object Lock = new object(); // General interlock
+        static readonly object SearchLock = new object(); // prevents updates to tree while it is being searched
 
         readonly RateLimit UpdateTree;
 
@@ -46,6 +47,7 @@
             UpdateTree = new RateLimit(TimeSpan.FromSeconds(1), () => InvokeDelegate(() =>
             {
                 lock (Lock)
+                lock (SearchLock)
                 {
                     tree.BeginUpdate();
                     var state = tree.GetState();
@@ -80,11 +82,10 @@
 
         void RebuildTree(object sender, FileSystemEventArgs e)
         {
-            if (e.ChangeType == WatcherChangeTypes.Deleted || e.ChangeType == WatcherChangeTypes.Changed)
+            lock (SearchLock)
             {
-                if (tree.Nodes.Find(e.Name, true).Length < 1) return; // change to a node we have hidden
+                UpdateTree.Trigger();
             }
-            UpdateTree.Trigger();
         }
 
         private void FormKeyPress(object sender, KeyPressEventArgs e)
@@ -125,16 +126,17 @@
                     }
                     else // Hunt for next match
                     {
-                        ShowSearching();
-                        HilightNextFileNameMatch(tree, searchPreview.Text);
-                        DoneSearching();
+                        lock (SearchLock)
+                        {
+                            HilightNextFileNameMatch(tree, SearchFileName());
+                        }
                     }
                     break;
 
                 case Keys.Return: // load the selected file
                     e.Handled = true;
                     lastGrepPosition = null;
-                    TriggerOpenSelectedNode(makeNew: e.Shift);
+                    TriggerOpenSelectedNode(makeNew: e.Shift, gotoGrep:false);
                     break;
 
                 case Keys.Left:
@@ -155,28 +157,34 @@
             }
             if (keyData == (Keys.Control | Keys.C))
             {
-                if (tree.SelectedNode != null && !string.IsNullOrEmpty(tree.SelectedNode.FullPath))
+                if (tree.SelectedNode != null && !string.IsNullOrEmpty(GetFullPath(tree.SelectedNode)))
                 {
-                    Clipboard.SetText(tree.SelectedNode.FullPath);
+                    Clipboard.SetText(GetFullPath(tree.SelectedNode));
                 }
                 return true;
             }
             if (keyData == (Keys.Control | Keys.V))
             {
                 searchPreview.Text = Clipboard.GetText();
-                HilightNextFileNameMatch(tree, searchPreview.Text);
+                lock (SearchLock)
+                {
+                    HilightNextFileNameMatch(tree, searchPreview.Text);
+                }
                 return true;
             }
             if (keyData == (Keys.Control | Keys.G))
             {
                 // check regex
                 var pattern = searchPreview.Text;
-                HilightNextRegexContentMatch(pattern);
+                lock (SearchLock)
+                {
+                    HilightNextRegexContentMatch(pattern);
+                }
                 return true;
             }
             if (keyData == (Keys.Control | Keys.Shift | Keys.G))
             {
-                TriggerOpenSelectedNode(makeNew: false);
+                TriggerOpenSelectedNode(makeNew: false, gotoGrep: true);
                 return true;
             }
             var baseResult = base.ProcessCmdKey(ref msg, keyData);
@@ -195,15 +203,14 @@
             searchPreview.Refresh();
         }
 
-
-        void TriggerOpenSelectedNode(bool makeNew)
+        void TriggerOpenSelectedNode(bool makeNew, bool gotoGrep)
         {
             if (tree.SelectedNode == null) { return; }
 
-            var targetPath = tree.SelectedNode.FullPath;
+            var targetPath = GetFullPath(tree.SelectedNode);
 
             if (Directory.Exists(targetPath) && !makeNew) OpenDirectoryInExplorer(targetPath);
-            else OpenFilePathInEditor(makeNew, targetPath);
+            else OpenFilePathInEditor(makeNew, targetPath, gotoGrep);
         }
 
         void OpenDirectoryInExplorer(string targetPath)
@@ -211,7 +218,7 @@
             Process.Start("explorer.exe", Path.Combine(_root, targetPath));
         }
 
-        void OpenFilePathInEditor(bool makeNew, string targetPath)
+        void OpenFilePathInEditor(bool makeNew, string targetPath, bool gotoGrep)
         {
             if (makeNew) // edit new file: add search name to path
             {
@@ -220,14 +227,14 @@
                 {
                     t1 = Path.Combine(_root, Path.GetDirectoryName(targetPath) ?? "");
                 }
-                LoadFile(Path.Combine(t1, SearchFileName()), SearchPosition());
+                LoadFile(Path.Combine(t1, SearchFileName()), SearchPosition(gotoGrep));
             }
             else // edit existing file.
             {
                 var target = Path.Combine(_root, targetPath);
                 if (File.Exists(target))
                 {
-                    LoadFile(target, SearchPosition());
+                    LoadFile(target, SearchPosition(gotoGrep));
                 }
             }
         }
@@ -245,9 +252,9 @@
         /// <summary>
         /// Read row and column of a search like "filename:row:col"
         /// </summary>
-        Point SearchPosition()
+        Point SearchPosition(bool gotoGrep)
         {
-            if (lastGrepPosition != null) return lastGrepPosition.Value;
+            if (lastGrepPosition != null && gotoGrep) return lastGrepPosition.Value;
             if (string.IsNullOrWhiteSpace(searchPreview.Text)) return new Point(1, 1);
             var bits = searchPreview.Text.Trim().Split(':');
             switch (bits.Length)
@@ -270,35 +277,73 @@
 
         async void HilightNextRegexContentMatch(string pattern)
         {
-            ShowSearching();
-            if (Grep.IsValid(pattern))
+            try
             {
-                var prevNode = tree.SelectedNode;
-                var tn = await FindNextMatch(tree, n =>
+                ShowSearching();
+                if (Grep.IsValid(pattern))
                 {
-                    lastGrepPosition = Grep.FileContainsPattern(Path.Combine(_root, n.FullPath), pattern);
-                    return lastGrepPosition != null;
-                });
-                tree.SelectedNode = tn ?? prevNode;
+                    var prevNode = tree.SelectedNode;
+                    var tn = await FindNextMatch(tree, n =>
+                    {
+                        lastGrepPosition = Grep.FileContainsPattern(Path.Combine(_root, GetFullPath(n)), pattern);
+                        return lastGrepPosition != null;
+                    });
+                    tree.SelectedNode = tn ?? prevNode;
+                }
+            }
+            finally
+            {
                 DoneSearching();
             }
         }
 
         async void HilightNextFileNameMatch(TreeView treeView, string pattern)
         {
-            var lcasePattern = pattern.ToLower().Replace("/", "\\");
-            Func<TreeNode,bool> match;
-            if (pattern.Contains("\\")) match = target => target.FullPath.ToLower().Contains(lcasePattern); // match paths and path fragments
-            else match = target => target.Text.ToLower().Contains(lcasePattern); // match file and folder names, but not files based on folder names
+            try
+            {
+                ShowSearching();
+                var lcasePattern = pattern.ToLower().Replace("/", "\\");
+                Func<TreeNode, bool> match;
+                if (pattern.Contains("\\")) match = target => GetFullPath(target).ToLower().Contains(lcasePattern); // match paths and path fragments
+                else match = target => target.Text.ToLower().Contains(lcasePattern); // match file and folder names, but not files based on folder names
 
-            var newNode = await FindNextMatch(treeView, match);
-            treeView.SelectedNode = newNode;
+                var newNode = await FindNextMatch(treeView, match);
+                treeView.SelectedNode = newNode;
+            }
+            finally
+            {
+                DoneSearching();
+            }
         }
 
-        Task<TreeNode> FindNextMatch(TreeView treeView, Func<TreeNode,bool> match)
+        static string GetFullPath(TreeNode target)
+        {
+            try
+            {
+                return target.FullPath;
+            }
+            catch // FullPath property failed. Figure it out ourselves.
+            {
+                var s = new Stack<string>();
+                var sb = new StringBuilder();
+                do
+                {
+                    if (target == null) break;
+                    s.Push(target.Text);
+                } while ((target = target.Parent) != null);
+                while (s.Count > 0)
+                {
+                    sb.Append(s.Pop()); sb.Append("\\");
+                }
+                return sb.ToString(0, sb.Length - 1);
+            }
+        }
+
+        Task<TreeNode> FindNextMatch(TreeView treeView, Func<TreeNode, bool> match)
         {
             CancellationToken token;
-            lock (Lock) {
+            lock (Lock)
+            {
                 _searchCancel.Dispose();
                 _searchCancel = new CancellationTokenSource();
                 token = _searchCancel.Token;
@@ -312,47 +357,53 @@
             {
                 TreeNode newTarget = null;
 
-                while (newTarget == null &&  (! token.IsCancellationRequested))
+                lock (SearchLock)
                 {
-                    newTarget = FindRecursive(target, original, match, token);
-                    if (newTarget != null) { continue; }
-                    Application.DoEvents();
-                    target = WalkParentNext(target);
-                    if (target != null) { continue; }
-                    if (original != root)
+                    while (newTarget == null && (!token.IsCancellationRequested))
                     {
-                        // no matches from selected, start again at top
-                        newTarget = FindRecursive(root, null, match, token);
-                        if (newTarget == null) return null;
+                        newTarget = FindRecursive(target, original, match, token);
+                        if (newTarget != null) { continue; }
+                        Application.DoEvents();
+                        target = WalkParentNext(target);
+                        if (target != null) { continue; }
+                        if (original != root)
+                        {
+                            // no matches from selected, start again at top
+                            newTarget = FindRecursive(root, null, match, token);
+                            if (newTarget == null) return null;
+                        }
+                        else
+                        {
+                            return null; // no matches
+                        }
                     }
-                    else
-                    {
-                        return null; // no matches
-                    }
+                    return newTarget;
                 }
-                return newTarget;
             }, token);
         }
 
         static TreeNode FindRecursive(TreeNode target, TreeNode ignore, Func<TreeNode, bool> match, CancellationToken token)
         {
-            if (target == null) return null;
-            if (token.IsCancellationRequested) return null;
-            
-            if (target != ignore && match(target)) return target;
-
-            foreach (TreeNode n in target.Nodes)
+            lock (SearchLock)
             {
+                if (target == null) return null;
                 if (token.IsCancellationRequested) return null;
-                var maybe = FindRecursive(n, ignore, match, token);
-                if (maybe != null) return maybe;
+
+                if (target != ignore && match(target)) return target;
+
+                foreach (TreeNode n in target.Nodes)
+                {
+                    if (token.IsCancellationRequested) return null;
+                    var maybe = FindRecursive(n, ignore, match, token);
+                    if (maybe != null) return maybe;
+                }
+                if (target.NextNode != null)
+                {
+                    var next = FindRecursive(target.NextNode, null, match, token);
+                    if (next != null) return next;
+                }
+                return null;
             }
-            if (target.NextNode != null)
-            {
-                var next = FindRecursive(target.NextNode, null, match, token);
-                if (next != null) return next;
-            }
-            return null;
         }
 
         static TreeNode WalkParentNext(TreeNode target)
@@ -364,12 +415,6 @@
                 if (target == null) return null;
             } while (target.NextNode == null);
             return target.NextNode;
-        }
-
-        void SearchBackspace()
-        {
-            if (searchPreview.Text.Length < 1) return;
-            searchPreview.Text = searchPreview.Text.Substring(0, searchPreview.Text.Length - 1);
         }
 
         static void LoadFile(string fullPath, Point filePosition)
@@ -471,7 +516,7 @@
 
         private void tree_DoubleClick(object sender, EventArgs e)
         {
-            TriggerOpenSelectedNode(makeNew: false);
+            TriggerOpenSelectedNode(makeNew: false, gotoGrep: false);
         }
 
         private void tree_MouseDown(object sender, MouseEventArgs e)
@@ -482,8 +527,8 @@
                 var selected = tree.SelectedNode;
                 if (targ == null || selected == null) return;
 
-                var from = new FilePath(Path.Combine(_root, selected.FullPath));
-                var to = new FilePath(Path.Combine(_root, targ.FullPath));
+                var from = new FilePath(Path.Combine(_root, GetFullPath(selected)));
+                var to = new FilePath(Path.Combine(_root, GetFullPath(targ)));
 
                 var path = to.RelativeTo(from).ToEnvironmentalPath();
 
@@ -529,7 +574,10 @@
             new Thread(() => InvokeDelegate(() =>
             {
                 searchPreview.Text = searchTerm;
-                HilightNextFileNameMatch(tree, searchTerm);
+                lock (SearchLock)
+                {
+                    HilightNextFileNameMatch(tree, searchTerm);
+                }
 
                 // Try to become the front window -- may need to retry as helper may be switching focus about
                 for (int i = 0; i < 10; i++)
@@ -537,7 +585,6 @@
                     Win32.SetForegroundWindow(Handle);
                     Win32.BringWindowToTop(Handle);
                     Thread.Sleep(100); // give caller time to exit
-                    if (Win32.GetForegroundWindow() == Handle) break;
                 }
             })).Start();
         }

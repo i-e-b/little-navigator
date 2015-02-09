@@ -10,6 +10,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
+    using Microsoft.Win32;
 
     public sealed partial class Form1 : Form
     {
@@ -592,7 +593,53 @@
         private void tree_KeyPress(object sender, KeyPressEventArgs e)
         {
             // don't change selection until tab is pressed
-            FormKeyPress(sender, e);    
+            FormKeyPress(sender, e);
+        }
+
+        private void Form1_Load(object sender, EventArgs e)
+        {
+            LoadLayout();
+        }
+
+        void SaveLayout()
+        {
+            var key = Registry.CurrentUser.CreateSubKey("Software\\lnav.exe");
+            if (key == null) { return; }
+            key.SetValue("WindowPosition", PositionString());
+            key.Close();
+        }
+
+        string PositionString()
+        {
+            return Left+":"+Top+":"+Width+":"+Height;
+        }
+
+        void LoadLayout()
+        {
+            var key = Registry.CurrentUser.OpenSubKey("Software\\lnav.exe");
+            if (key == null) { return; }
+            var str = key.GetValue("WindowPosition", "not found!").ToString();
+            key.Close();
+            var parts = str.Split(':');
+
+            try
+            {
+                Left = int.Parse(parts[0]);
+                Top = int.Parse(parts[1]);
+                Width = int.Parse(parts[2]);
+                Height = int.Parse(parts[3]);
+            }
+            catch
+            {
+                Ignore();
+            }
+        }
+
+        static void Ignore() { }
+
+        private void Form1_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            SaveLayout();
         }
     }
 }

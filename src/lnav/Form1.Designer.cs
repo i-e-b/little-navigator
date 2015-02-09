@@ -30,7 +30,7 @@
         {
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(Form1));
             this.tree = new System.Windows.Forms.TreeView();
-            this.searchPreview = new PublicTextBox();
+            this.searchPreview = new lnav.PublicTextBox();
             this.SuspendLayout();
             // 
             // tree
@@ -79,6 +79,8 @@
             this.ShowIcon = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.Text = "location";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
+            this.Load += new System.EventHandler(this.Form1_Load);
             this.KeyDown += new System.Windows.Forms.KeyEventHandler(this.FormKeyDown);
             this.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.FormKeyPress);
             this.ResumeLayout(false);

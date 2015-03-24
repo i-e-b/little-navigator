@@ -77,6 +77,7 @@
                 EnableRaisingEvents = true
             };
 
+            _fileWatcher.Renamed += RebuildTree;
             _fileWatcher.Created += RebuildTree;
             _fileWatcher.Deleted += RebuildTree;
         }

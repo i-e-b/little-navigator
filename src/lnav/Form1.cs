@@ -604,6 +604,8 @@
 
         void SaveLayout()
         {
+            if (WindowState != FormWindowState.Normal) return;
+
             var key = Registry.CurrentUser.CreateSubKey("Software\\lnav.exe");
             if (key == null) { return; }
             key.SetValue("WindowPosition", PositionString());

@@ -457,10 +457,13 @@
                 foreach (var directory in directories)
                     directoryNode.Nodes.Add(CreateDirectoryNode(directory, depth + 1));
 
-                var files = StackFilter(directoryInfo.GetFiles().Select(f => f.Name).ToArray());
+                var files = StackFilter(directoryInfo.GetFiles().Select(f => f.Name).OrderBy(ExtAndName).ToArray());
                 foreach (var file in files)
                 {
-                    directoryNode.Nodes.Add(new TreeNode(file));
+                    var fileNode = new TreeNode(file) {
+                        ForeColor = ColorFromFileExtension(file)
+                    };
+                    directoryNode.Nodes.Add(fileNode);
                 }
             }
             catch (DirectoryNotFoundException) {
@@ -475,6 +478,17 @@
             }
 
             return directoryNode;
+        }
+
+        static object ExtAndName(string arg)
+        {
+            return Path.GetExtension(arg) + arg;
+        }
+
+        static Color ColorFromFileExtension(string path)
+        {
+            var ext = Path.GetExtension(path) ?? "null";
+            return Color.FromArgb((ext.GetHashCode() * 2) & 0x7f7f7f);
         }
 
         /// <summary>

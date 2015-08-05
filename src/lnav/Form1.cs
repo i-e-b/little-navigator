@@ -482,13 +482,20 @@
 
         static object ExtAndName(string arg)
         {
-            return Path.GetExtension(arg) + arg;
+            return arg.Substring(Math.Max(0, arg.IndexOf('.'))) + arg;
         }
 
         static Color ColorFromFileExtension(string path)
         {
-            var ext = Path.GetExtension(path) ?? "null";
-            return Color.FromArgb((ext.GetHashCode() * 2) & 0x7f7f7f);
+            var ext = path.Substring(Math.Max(0, path.IndexOf('.'))) + "   ";
+            if (ext == ".ts   ") return Color.Black;
+
+            var r = ((ext[1] - 30) * 30) % 200;
+            var g = ((ext[2] - 30) * 30) % 200;
+            var b = ((ext[3] - 30) * 30) % 200;
+
+            return Color.FromArgb(255, r, g, b);
+            //return Color.FromArgb((ext.GetHashCode() * 2) & 0x7f7f7f);
         }
 
         /// <summary>

@@ -7,6 +7,7 @@
     using System.IO;
     using System.Linq;
     using System.Text;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using System.Windows.Forms;
@@ -282,12 +283,14 @@
             try
             {
                 ShowSearching();
+
                 if (Grep.IsValid(pattern))
                 {
+                    var regex = new Regex(pattern, RegexOptions.Compiled);
                     var prevNode = tree.SelectedNode;
                     var tn = await FindNextMatch(tree, n =>
                     {
-                        lastGrepPosition = Grep.FileContainsPattern(Path.Combine(_root, GetFullPath(n)), pattern);
+                        lastGrepPosition = Grep.FileContainsPattern(Path.Combine(_root, GetFullPath(n)), regex);
                         return lastGrepPosition != null;
                     });
                     tree.SelectedNode = tn ?? prevNode;
@@ -505,8 +508,10 @@
         {
             // TODO: match against `.gitignore` files
             return getDirectories.Where(d => 
-                d.Name != "node_modules" 
+                d.Name != "node_modules"
+                && d.Name != "bower_components" 
                 && d.Name != ".git" 
+                && d.Name != ".vscode" 
                 && d.Name != ".idea"
                 && d.Name != ".tscache");
         }

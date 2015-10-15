@@ -6,7 +6,7 @@
 
     public static class Grep
     {
-        public static Point? FileContainsPattern(string filePath, string pattern)
+        public static Point? FileContainsPattern(string filePath, Regex pattern)
         {
             if (!File.Exists(filePath)) return null;
             try
@@ -18,7 +18,7 @@
                     while ((line = reader.ReadLine()) != null)
                     {
                         row++;
-                        var match = Regex.Match(line, pattern);
+                        var match = pattern.Match(line);
                         if (!match.Success) continue;
                         return new Point(match.Index, row);
                     }

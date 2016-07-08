@@ -491,14 +491,13 @@
         static Color ColorFromFileExtension(string path)
         {
             var ext = path.Substring(Math.Max(0, path.IndexOf('.'))) + "   ";
-            if (ext == ".ts   ") return Color.Black;
+            if (ext == ".ts   " || ext == ".rs   ") return Color.Black;
 
             var r = ((ext[1] - 30) * 30) % 200;
             var g = ((ext[2] - 30) * 30) % 200;
             var b = ((ext[3] - 30) * 30) % 200;
 
             return Color.FromArgb(255, r, g, b);
-            //return Color.FromArgb((ext.GetHashCode() * 2) & 0x7f7f7f);
         }
 
         /// <summary>
@@ -517,7 +516,7 @@
         }
 
         /// <summary>
-        /// Filter out generated files. Currently only supports ts->js->js.map
+        /// Filter out generated files. TODO: generalise this
         /// </summary>
         static IEnumerable<string> StackFilter(string[] files)
         {
@@ -525,6 +524,7 @@
             foreach (var file in files)
             {
                 var add = true;
+                // ts->js->js.map stack
                 if (file.EndsWith(".js.map", StringComparison.Ordinal))
                 {
                     if (files.Contains(file.Replace(".js.map", ".js"))) add = false;
@@ -537,6 +537,11 @@
                 {
                     if (files.Contains(file.Replace(".d.ts", ".ts"))) add = false;
                 }
+
+                // .pdb and .exe filter
+                if (file.EndsWith(".exe", StringComparison.Ordinal)) add = false;
+                if (file.EndsWith(".pdb", StringComparison.Ordinal)) add = false;
+
                 if (add) output.Add(file);
             }
             return output;

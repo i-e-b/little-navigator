@@ -46,6 +46,8 @@
             this.tree.Size = new System.Drawing.Size(432, 606);
             this.tree.TabIndex = 1;
             this.tree.TabStop = false;
+            this.tree.AfterCollapse += new System.Windows.Forms.TreeViewEventHandler(this.tree_AfterCollapse);
+            this.tree.BeforeExpand += new System.Windows.Forms.TreeViewCancelEventHandler(this.tree_BeforeExpand);
             this.tree.DoubleClick += new System.EventHandler(this.tree_DoubleClick);
             this.tree.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.tree_KeyPress);
             this.tree.MouseDown += new System.Windows.Forms.MouseEventHandler(this.tree_MouseDown);

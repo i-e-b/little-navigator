@@ -28,7 +28,7 @@
         const string FileLoadArgs = "--remote-tab-silent \"+call cursor({1},{2})\" \"{0}\""; // 0: filename, 1: row(1-based), 2: col(1-based)
 
         // How far down the tree should go before stopping
-        const int MaximumDepth = 5;
+        const int MaximumDepth = 3;
 
         static readonly object Lock = new object(); // General interlock
         static readonly object SearchLock = new object(); // prevents updates to tree while it is being searched
@@ -344,6 +344,14 @@
             }
         }
 
+        static int DepthOfNode(TreeNode target) {
+            var d = 1;
+            while ((target = target.Parent) != null) {
+                d++;
+            }
+            return d;
+        }
+
         Task<TreeNode> FindNextMatch(TreeView treeView, Func<TreeNode, bool> match)
         {
             CancellationToken token;
@@ -437,7 +445,7 @@
         private static void ListDirectory(TreeView treeView, string path)
         {
             var rootDirectoryInfo = new DirectoryInfo(path);
-            var nodes = CreateDirectoryNode(rootDirectoryInfo, 0);
+            var nodes = CreateDirectoryNodes(rootDirectoryInfo, 0);
 
             treeView.Nodes.Clear();
             foreach (TreeNode node in nodes.Nodes)
@@ -446,7 +454,7 @@
             }
         }
 
-        private static TreeNode CreateDirectoryNode(DirectoryInfo directoryInfo, int depth)
+        private static TreeNode CreateDirectoryNodes(DirectoryInfo directoryInfo, int depth)
         {
             if (depth > MaximumDepth) return new TreeNode("...");
 
@@ -458,7 +466,7 @@
                 directoryNode.ForeColor = Color.SlateBlue;
 
                 foreach (var directory in directories)
-                    directoryNode.Nodes.Add(CreateDirectoryNode(directory, depth + 1));
+                    directoryNode.Nodes.Add(CreateDirectoryNodes(directory, depth + 1));
 
                 var files = StackFilter(directoryInfo.GetFiles().Select(f => f.Name).OrderBy(ExtAndName).ToArray());
                 foreach (var file in files)
@@ -674,6 +682,37 @@
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
         {
             SaveLayout();
+        }
+
+        /// <summary>
+        /// Populate the subtree when expanding, if we are past the default depth limit.
+        /// </summary>
+        private void tree_BeforeExpand(object sender, TreeViewCancelEventArgs e)
+        {
+            var expandedNode = e.Node;
+
+            if (DepthOfNode(expandedNode) < MaximumDepth) return; // will be pre-generated
+
+            var pathToHere = Path.Combine(_root, GetFullPath(expandedNode));
+            var rootDirectoryInfo = new DirectoryInfo(pathToHere);
+            var nodes = CreateDirectoryNodes(rootDirectoryInfo, MaximumDepth - 1); // max depth so we add exactly 1 deep
+
+            expandedNode.Nodes.Clear();
+            foreach (TreeNode node in nodes.Nodes)
+            {
+                expandedNode.Nodes.Add(node);
+            }
+        }
+
+        /// <summary>
+        /// De-populate the subtree after collapse, if they are past the default depth limit.
+        /// This saves us memory, calculation and redraw time.
+        /// </summary>
+        private void tree_AfterCollapse(object sender, TreeViewEventArgs e)
+        {
+            if (DepthOfNode(e.Node) <  MaximumDepth) return; // maybe TODO: try walking UP until we hit a limit? That might be wasteful.
+            e.Node.Nodes.Clear();
+            e.Node.Nodes.Add(new TreeNode("...")); // leave an ellipsis node so the expander control is still visible
         }
     }
 }
